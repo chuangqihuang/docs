@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>go2rtc 项目汇报文档</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --primary-dark: #1d4ed8;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warn: #d97706;
+    --warn-light: #fef3c7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --border-radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: #f0f4ff;
+    color: var(--gray-800);
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%);
+    color: #fff;
+    padding: 60px 40px 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='10'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 100px;
+    padding: 6px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+  .hero h1 span { color: #60a5fa; }
+  .hero p {
+    font-size: 1.15rem;
+    opacity: .85;
+    max-width: 700px;
+    margin: 0 auto 30px;
+  }
+  .hero-meta {
+    display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; opacity: .8;
+  }
+  .hero-meta-item strong { color: #93c5fd; font-size: 16px; }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Sections ── */
+  section { margin-bottom: 48px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--primary-light);
+  }
+  .section-icon {
+    width: 40px; height: 40px;
+    background: var(--primary);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gray-900);
+  }
+  .section-header p {
+    font-size: 0.88rem;
+    color: var(--gray-600);
+    margin-top: 2px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    border: 1px solid var(--gray-200);
+  }
+  .card-grid {
+    display: grid;
+    gap: 16px;
+  }
+  .card-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .card-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* ── Conclusion Card ── */
+  .conclusion-card {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--border-radius);
+    padding: 28px 32px;
+  }
+  .conclusion-card h3 { color: #1e40af; font-size: 1.05rem; margin-bottom: 14px; }
+  .conclusion-points { list-style: none; }
+  .conclusion-points li {
+    display: flex; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(59,130,246,.12);
+    font-size: 0.95rem;
+  }
+  .conclusion-points li:last-child { border-bottom: none; }
+  .conclusion-points .dot {
+    width: 8px; height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    margin-top: 8px; flex-shrink: 0;
+  }
+
+  /* ── Feature Cards ── */
+  .feat-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 18px;
+    display: flex; gap: 14px;
+    align-items: flex-start;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .feat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .feat-icon {
+    font-size: 28px; flex-shrink: 0;
+    width: 48px; height: 48px;
+    background: var(--gray-100);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .feat-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; color: var(--gray-900); }
+  .feat-card p { font-size: 0.84rem; color: var(--gray-600); line-height: 1.5; }
+
+  /* ── Protocol Tabs ── */
+  .proto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .proto-tag {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.84rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .proto-tag.public { border-left: 3px solid var(--primary); }
+  .proto-tag.private { border-left: 3px solid var(--warn); }
+  .proto-tag.device { border-left: 3px solid var(--success); }
+  .proto-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-public { background: var(--primary); }
+  .dot-private { background: var(--warn); }
+  .dot-device { background: var(--success); }
+
+  /* ── Architecture Flow ── */
+  .arch-flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; flex-wrap: wrap;
+    padding: 24px 0;
+  }
+  .arch-node {
+    background: #fff;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+    min-width: 120px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .arch-node.core {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff; border-color: transparent;
+    min-width: 160px; padding: 18px 24px;
+    font-size: 1rem;
+    box-shadow: 0 4px 20px rgba(37,99,235,.35);
+  }
+  .arch-node .sub { font-size: 0.75rem; font-weight: 400; opacity: .7; margin-top: 4px; }
+  .arch-arrow {
+    font-size: 20px; color: var(--gray-300);
+    margin: 0 8px;
+  }
+  .arch-col {
+    display: flex; flex-direction: column; gap: 10px;
+    align-items: center;
+  }
+
+  /* ── Codec Matrix ── */
+  .codec-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.84rem;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .codec-table th {
+    background: var(--gray-800); color: #fff;
+    padding: 12px 14px; text-align: left;
+    font-weight: 600; font-size: 0.82rem;
+  }
+  .codec-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
+  }
+  .codec-table tr:hover td { background: var(--gray-50); }
+  .codec-table tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 100px;
+    font-size: 0.75rem; font-weight: 500;
+  }
+  .badge-ok { background: var(--success-light); color: var(--success); }
+  .badge-warn { background: var(--warn-light); color: var(--warn); }
+  .badge-no { background: var(--danger-light); color: var(--danger); }
+  .badge-best { background: var(--primary-light); color: var(--primary); }
+
+  /* ── Scenario Cards ── */
+  .scenario-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .scenario-head {
+    padding: 14px 18px;
+    font-weight: 700; font-size: 0.95rem;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scenario-body { padding: 14px 18px; }
+  .scenario-body ul { list-style: none; }
+  .scenario-body li { padding: 4px 0; font-size: 0.84rem; color: var(--gray-700); }
+  .scenario-body li::before { content: "▸ "; color: var(--primary); }
+
+  /* ── Ecosystem ── */
+  .eco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .eco-item {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.84rem;
+    display: flex; gap: 10px; align-items: flex-start;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .eco-icon { font-size: 22px; flex-shrink: 0; }
+  .eco-name { font-weight: 600; margin-bottom: 2px; }
+  .eco-desc { color: var(--gray-600); font-size: 0.78rem; }
+
+  /* ── Risk / Plan ── */
+  .risk-item {
+    display: flex; gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-level {
+    padding: 3px 10px; border-radius: 100px;
+    font-size: 0.75rem; font-weight: 700;
+    flex-shrink: 0; height: fit-content; margin-top: 2px;
+  }
+  .risk-high { background: var(--danger-light); color: var(--danger); }
+  .risk-mid { background: var(--warn-light); color: var(--warn); }
+  .risk-low { background: var(--success-light); color: var(--success); }
+  .risk-title { font-weight: 600; margin-bottom: 4px; font-size: 0.93rem; }
+  .risk-desc { font-size: 0.84rem; color: var(--gray-600); }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before {
+    content: '';
+    position: absolute; left: 10px; top: 6px; bottom: 6px;
+    width: 2px; background: var(--primary-light);
+  }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-dot {
+    position: absolute; left: -24px; top: 4px;
+    width: 14px; height: 14px;
+    background: var(--primary); border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--primary-light);
+  }
+  .tl-phase {
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--primary); margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .tl-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+  .tl-desc { font-size: 0.84rem; color: var(--gray-600); }
+
+  /* ── Stat Block ── */
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat-box {
+    flex: 1; min-width: 150px;
+    background: #fff; border: 1px solid var(--gray-200);
+    border-radius: 10px; padding: 18px 20px;
+    box-shadow: var(--shadow); text-align: center;
+  }
+  .stat-box .num { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; }
+  .stat-box .label { font-size: 0.82rem; color: var(--gray-600); margin-top: 4px; }
+
+  /* ── Code block ── */
+  pre {
+    background: var(--gray-800); color: #e2e8f0;
+    border-radius: 10px; padding: 18px 20px;
+    font-size: 0.83rem; overflow-x: auto;
+    line-height: 1.6;
+    font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+  }
+  code { font-family: inherit; }
+  .code-comment { color: #6b7280; }
+  .code-key { color: #93c5fd; }
+  .code-val { color: #86efac; }
+
+  /* ── Config Block ── */
+  .config-block {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .config-head {
+    padding: 10px 18px;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 0.82rem;
+    font-weight: 600; color: var(--gray-700);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dot-red { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; }
+  .dot-yellow { width: 10px; height: 10px; background: #f59e0b; border-radius: 50%; }
+  .dot-green { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; }
+  .config-body { padding: 0; }
+  .config-body pre { border-radius: 0; margin: 0; }
+
+  /* ── TOC ── */
+  .toc {
+    background: #fff; border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius); padding: 20px 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 40px;
+  }
+  .toc h3 { font-size: 0.88rem; text-transform: uppercase; letter-spacing: .5px; color: var(--gray-600); margin-bottom: 12px; }
+  .toc-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; }
+  .toc-list a {
+    display: block; padding: 6px 14px;
+    background: var(--gray-100); border-radius: 100px;
+    font-size: 0.84rem; color: var(--gray-700);
+    text-decoration: none; transition: all .15s;
+  }
+  .toc-list a:hover { background: var(--primary-light); color: var(--primary); }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 30px;
+    font-size: 0.84rem;
+    color: var(--gray-600);
+    border-top: 1px solid var(--gray-200);
+    margin-top: 40px;
+    background: #fff;
+  }
+  footer a { color: var(--primary); text-decoration: none; }
+
+  /* ── Responsive ── */
+  @media(max-width: 768px) {
+    .hero h1 { font-size: 2rem; }
+    .card-grid-2, .card-grid-3, .card-grid-4 { grid-template-columns: 1fr; }
+    .arch-flow { flex-direction: column; }
+    .arch-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ───── Hero ───── -->
+<div class="hero">
+  <div class="hero-badge">📡 开源项目调研汇报</div>
+  <h1>go<span>2</span>rtc</h1>
+  <p>终极摄像头流媒体解决方案 — 支持数十种协议、零依赖、超低延迟的 Go 语言流媒体引擎</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">⭐ Stars <strong>13.1k</strong></div>
+    <div class="hero-meta-item">🍴 Forks <strong>1.1k</strong></div>
+    <div class="hero-meta-item">🏷️ 最新版 <strong>v1.9.14</strong></div>
+    <div class="hero-meta-item">📅 更新 <strong>2026-01-19</strong></div>
+    <div class="hero-meta-item">📜 License <strong>MIT</strong></div>
+    <div class="hero-meta-item">🔧 语言 <strong>Go 88.8%</strong></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── TOC ── -->
+  <nav class="toc">
+    <h3>目录导航</h3>
+    <ul class="toc-list">
+      <li><a href="#conclusion">🎯 核心结论</a></li>
+      <li><a href="#background">📌 项目背景</a></li>
+      <li><a href="#features">✨ 核心特性</a></li>
+      <li><a href="#arch">🏗️ 架构设计</a></li>
+      <li><a href="#protocols">📡 协议支持</a></li>
+      <li><a href="#codecs">🎬 编解码器</a></li>
+      <li><a href="#quickstart">🚀 快速上手</a></li>
+      <li><a href="#scenarios">💡 应用场景</a></li>
+      <li><a href="#ecosystem">🌐 生态系统</a></li>
+      <li><a href="#risk">⚠️ 风险分析</a></li>
+      <li><a href="#plan">📋 落地建议</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── 1. 核心结论 ── -->
+  <section id="conclusion">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div>
+        <h2>核心结论</h2>
+        <p>对 go2rtc 的综合评估与价值判断</p>
+      </div>
+    </div>
+    <div class="conclusion-card">
+      <h3>调研核心结论（论点格式）</h3>
+      <ul class="conclusion-points">
+        <li>
+          <div class="dot"></div>
+          <div><strong>go2rtc 是目前开源流媒体转发领域的标杆方案</strong>，以 13.1k Stars 和 MIT 协议获得 Home Assistant、Frigate 等头部项目采用，工程成熟度高，可作为视频监控平台的核心传输层。</div>
+        </li>
+        <li>
+          <div class="dot"></div>
+          <div><strong>单二进制零依赖部署极大降低运维成本</strong>，Linux AMD64 体积仅 5.46MB，支持 Windows/macOS/Linux/FreeBSD/ARM 全平台，IoT 网关和边缘节点均可运行，契合云边端协同架构需求。</div>
+        </li>
+        <li>
+          <div class="dot"></div>
+          <div><strong>WebRTC 最低延迟输出是最大差异化优势</strong>，相比 HLS/HTTP 流，WebRTC 通道可实现亚秒级延迟，配合浏览器前端无需插件即可实现实时视频预览，直接满足监控大屏场景。</div>
+        </li>
+        <li>
+          <div class="dot"></div>
+          <div><strong>广泛的私有协议适配能力解决摄像头兼容问题</strong>，覆盖大华/海康 ONVIF、TP-Link Tapo、小米 Mi Home、Ring、Wyze 等 20+ 品牌，无需厂商 SDK 即可接入，是摄像头异构集成的关键突破点。</div>
+        </li>
+        <li>
+          <div class="dot"></div>
+          <div><strong>Go 语言实现保障高并发低资源占用</strong>，原生协程模型适合多路流并发转发，适合在资源受限的边缘服务器或嵌入式设备上部署视频行为分析流水线的前置接入层。</div>
+        </li>
+        <li>
+          <div class="dot"></div>
+          <div><strong>默认安全边界较弱，生产部署须加固</strong>，Web API 和 RTSP 服务器默认对局域网全开放，exec/echo 源存在命令执行风险，上生产前必须配置反向代理鉴权和访问路径限制。</div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── 2. 项目背景 ── -->
+  <section id="background">
+    <div class="section-header">
+      <div class="section-icon">📌</div>
+      <div>
+        <h2>项目背景</h2>
+        <p>项目起源、定位与发展历程</p>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num">13.1k</div><div class="label">GitHub Stars</div></div>
+      <div class="stat-box"><div class="num">1.1k</div><div class="label">Forks</div></div>
+      <div class="stat-box"><div class="num">v1.9.14</div><div class="label">最新版本</div></div>
+      <div class="stat-box"><div class="num">5.46MB</div><div class="label">二进制体积 (Linux)</div></div>
+      <div class="stat-box"><div class="num">MIT</div><div class="label">开源协议</div></div>
+    </div>
+    <div class="card">
+      <p style="margin-bottom:14px;">
+        go2rtc 由开发者 <strong>AlexxIT</strong> 创建，最初作为 Home Assistant WebRTC 摄像头集成的核心组件，随后演化为独立的通用流媒体转发引擎。项目完全使用 <strong>Go 语言</strong>（占 88.8%）编写，充分发挥了 Go 在网络并发和跨平台编译方面的优势。
+      </p>
+      <p style="margin-bottom:14px;">
+        项目的核心设计哲学是 <strong>"零依赖、零延迟、多格式"</strong>：通过单一可执行文件提供完整的流媒体转发能力，在协议转换过程中尽可能避免转码以实现最低延迟，同时支持市场上几乎所有主流摄像头品牌和流媒体协议。
+      </p>
+      <p>
+        目前 go2rtc 已被 <strong>Home Assistant（2024.11+）</strong>、<strong>Frigate NVR（0.12+）</strong> 等顶级开源项目内置采用，并支持 Alpine、Arch、NixOS、QNAP、Synology、Proxmox 等主流发行版。
+      </p>
+    </div>
+  </section>
+
+  <!-- ── 3. 核心特性 ── -->
+  <section id="features">
+    <div class="section-header">
+      <div class="section-icon">✨</div>
+      <div>
+        <h2>核心特性</h2>
+        <p>go2rtc 的差异化能力矩阵</p>
+      </div>
+    </div>
+    <div class="card-grid card-grid-3">
+      <div class="feat-card">
+        <div class="feat-icon">⚡</div>
+        <div>
+          <h4>零延迟转发</h4>
+          <p>WebRTC 输出实现业界最低延迟，自动协商编解码器，尽量避免转码损耗</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📦</div>
+        <div>
+          <h4>零依赖部署</h4>
+          <p>单个可执行文件，无需 runtime 或外部库，支持全平台（含 ARM、MIPS）</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔄</div>
+        <div>
+          <h4>智能编解码协商</h4>
+          <p>自动匹配客户端支持的格式，多源流双向协商，仅必要时调用 FFmpeg 转码</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🎙️</div>
+        <div>
+          <h4>双向音频</h4>
+          <p>支持 RTSP、WebRTC、Tapo、Ring、小米等协议的双向音频（对讲功能）</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔀</div>
+        <div>
+          <h4>多轨混流</h4>
+          <p>将不同来源的音视频轨道混合为单一流，支持多摄像头流聚合</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <div>
+          <h4>流媒体统计</h4>
+          <p>Web UI 实时查看所有活跃连接的 IP、格式、协议、数据量，支持 JSON/DOT 输出</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">📡</div>
+        <div>
+          <h4>流发布</h4>
+          <p>通过 RTMP/RTMPS 将任意流推送到 YouTube、Telegram 等平台</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔌</div>
+        <div>
+          <h4>按需转码</h4>
+          <p>集成 FFmpeg（Docker 版内置），支持硬件加速（GPU/ISP），转码仅在必要时触发</p>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🧩</div>
+        <div>
+          <h4>可嵌入集成</h4>
+          <p>提供 REST API，可集成到任意项目，或通过 Go 包直接引用</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. 架构设计 ── -->
+  <section id="arch">
+    <div class="section-header">
+      <div class="section-icon">🏗️</div>
+      <div>
+        <h2>架构设计</h2>
+        <p>核心模块与数据流向</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="arch-flow">
+        <!-- 输入层 -->
+        <div class="arch-col">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">输入源</div>
+          <div class="arch-node"><span>RTSP / ONVIF</span><div class="sub">IP摄像头</div></div>
+          <div class="arch-node"><span>WebRTC / WHEP</span><div class="sub">浏览器/设备</div></div>
+          <div class="arch-node"><span>私有协议</span><div class="sub">Tapo/小米/Ring...</div></div>
+          <div class="arch-node"><span>FFmpeg / exec</span><div class="sub">外部程序</div></div>
+          <div class="arch-node"><span>USB / V4L2</span><div class="sub">本地摄像头</div></div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- 核心引擎 -->
+        <div class="arch-col">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">核心引擎</div>
+          <div class="arch-node core">
+            go2rtc Engine
+            <div class="sub" style="color:rgba(255,255,255,.7)">Codec 协商 · 流管理 · 统计</div>
+          </div>
+          <div style="margin-top:10px;text-align:center;">
+            <div class="arch-node" style="background:var(--gray-100);font-size:0.8rem;padding:8px 14px;">
+              REST API :1984<br><span class="sub">Web UI / JSON API</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">→</div>
+
+        <!-- 输出层 -->
+        <div class="arch-col">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">输出格式</div>
+          <div class="arch-node" style="border-left:3px solid #2563eb;"><span>WebRTC :8555</span><div class="sub">⚡ 最低延迟</div></div>
+          <div class="arch-node" style="border-left:3px solid #16a34a;"><span>RTSP :8554</span><div class="sub">兼容性最佳</div></div>
+          <div class="arch-node" style="border-left:3px solid #d97706;"><span>MSE / MP4</span><div class="sub">浏览器 HTTP 流</div></div>
+          <div class="arch-node" style="border-left:3px solid #7c3aed;"><span>HLS</span><div class="sub">iPhone 必要</div></div>
+          <div class="arch-node" style="border-left:3px solid #0891b2;"><span>MJPEG / RTMP</span><div class="sub">截图/推流</div></div>
+        </div>
+      </div>
+      <p style="font-size:0.84rem;color:var(--gray-600);text-align:center;margin-top:8px;">
+        核心模块：<code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;">app</code>（配置）· 
+        <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;">api</code>（HTTP/WS）· 
+        <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;">streams</code>（流管理）· 
+        <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;">codecs</code>（编解码协商）
+      </p>
+    </div>
+  </section>
+
+  <!-- ── 5. 协议支持 ── -->
+  <section id="protocols">
+    <div class="section-header">
+      <div class="section-icon">📡</div>
+      <div>
+        <h2>协议支持</h2>
+        <p>输入源协议全景图</p>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;">
+          <div class="proto-dot dot-public"></div> 公开标准协议
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;">
+          <div class="proto-dot dot-private"></div> 私有/品牌协议
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;">
+          <div class="proto-dot dot-device"></div> 设备/文件输入
+        </div>
+      </div>
+      <div class="proto-grid">
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>RTSP</div>
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>ONVIF</div>
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>WebRTC / WHEP</div>
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>RTMP</div>
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>HLS</div>
+        <div class="proto-tag public"><div class="proto-dot dot-public"></div>MJPEG</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>TP-Link Tapo 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>小米 Mi Home 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Ring 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Wyze (原生P2P)</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Tuya 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Google Nest</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Apple HomeKit</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Hikvision ISAPI 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Doorbird 🎙️</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Roborock</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>GoPro (USB/Wi-Fi)</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>DVR-IP / DVRIP</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>SwitchBot</div>
+        <div class="proto-tag private"><div class="proto-dot dot-private"></div>Amazon Kinesis</div>
+        <div class="proto-tag device"><div class="proto-dot dot-device"></div>V4L2 (Linux)</div>
+        <div class="proto-tag device"><div class="proto-dot dot-device"></div>ALSA (Linux)</div>
+        <div class="proto-tag device"><div class="proto-dot dot-device"></div>FFmpeg / exec</div>
+        <div class="proto-tag device"><div class="proto-dot dot-device"></div>MP4 / FLV / TS</div>
+      </div>
+      <p style="margin-top:14px;font-size:0.82rem;color:var(--gray-600);">🎙️ 表示支持双向音频（对讲）</p>
+    </div>
+  </section>
+
+  <!-- ── 6. 编解码器 ── -->
+  <section id="codecs">
+    <div class="section-header">
+      <div class="section-icon">🎬</div>
+      <div>
+        <h2>编解码器兼容矩阵</h2>
+        <p>各客户端/浏览器的编解码器支持情况与延迟等级</p>
+      </div>
+    </div>
+    <table class="codec-table">
+      <thead>
+        <tr>
+          <th>客户端 / 浏览器</th>
+          <th>WebRTC <span class="badge badge-best" style="margin-left:4px;">最低延迟</span></th>
+          <th>MSE (HTTP)</th>
+          <th>HLS</th>
+          <th>推荐方案</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Chrome 136+ / Edge</strong><br><small style="color:var(--gray-500)">Android Chrome 136+</small></td>
+          <td>H264, H265*, PCMU, PCMA, OPUS</td>
+          <td>H264, H265*, AAC, OPUS</td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-best">WebRTC</span></td>
+        </tr>
+        <tr>
+          <td><strong>Firefox</strong></td>
+          <td>H264, PCMU, PCMA, OPUS</td>
+          <td>H264, AAC, OPUS</td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-best">WebRTC</span></td>
+        </tr>
+        <tr>
+          <td><strong>Safari 14+ / iPad</strong></td>
+          <td>H264, H265*, PCMU, PCMA, OPUS</td>
+          <td>H264, H265, AAC</td>
+          <td>H264, H265, AAC</td>
+          <td><span class="badge badge-best">WebRTC</span></td>
+        </tr>
+        <tr>
+          <td><strong>iPhone Safari 14+</strong></td>
+          <td>H264, H265*, PCMU, PCMA, OPUS</td>
+          <td><span class="badge badge-no">iOS &lt;17.1 不支持</span></td>
+          <td>H264, H265, AAC</td>
+          <td><span class="badge badge-warn">WebRTC / HLS</span></td>
+        </tr>
+        <tr>
+          <td><strong>VLC / ffplay</strong></td>
+          <td colspan="3" style="color:var(--gray-600);">通过 RTSP :8554 接入，支持所有编解码器</td>
+          <td><span class="badge badge-ok">RTSP</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.82rem;color:var(--gray-600);margin-top:10px;">* H265/HEVC WebRTC 支持：Chrome 136+ 和 Safari 18+；内置 PCM→FLAC 转码自动适配 MSE/MP4/HLS。</p>
+  </section>
+
+  <!-- ── 7. 快速上手 ── -->
+  <section id="quickstart">
+    <div class="section-header">
+      <div class="section-icon">🚀</div>
+      <div>
+        <h2>快速上手</h2>
+        <p>安装部署与基础配置</p>
+      </div>
+    </div>
+    <div class="card-grid card-grid-2" style="margin-bottom:20px;">
+      <!-- 二进制安装 -->
+      <div>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--gray-800);">① 二进制安装（推荐）</h4>
+        <div class="config-block">
+          <div class="config-head">
+            <div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div>
+            bash
+          </div>
+          <div class="config-body">
+<pre><code><span class="code-comment"># 下载 Linux AMD64 版本</span>
+wget https://github.com/AlexxIT/go2rtc/releases/\
+latest/download/go2rtc_linux_amd64
+chmod +x go2rtc_linux_amd64
+
+<span class="code-comment"># 启动（自动生成配置文件）</span>
+./go2rtc_linux_amd64
+
+<span class="code-comment"># Web UI：http://localhost:1984</span></code></pre>
+          </div>
+        </div>
+      </div>
+      <!-- Docker 安装 -->
+      <div>
+        <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--gray-800);">② Docker 安装</h4>
+        <div class="config-block">
+          <div class="config-head">
+            <div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div>
+            docker-compose.yml
+          </div>
+          <div class="config-body">
+<pre><code><span class="code-key">version</span>: <span class="code-val">"3"</span>
+<span class="code-key">services</span>:
+  <span class="code-key">go2rtc</span>:
+    <span class="code-key">image</span>: <span class="code-val">alexxit/go2rtc</span>
+    <span class="code-key">ports</span>:
+      - <span class="code-val">"1984:1984"</span>  <span class="code-comment"># Web UI</span>
+      - <span class="code-val">"8554:8554"</span>  <span class="code-comment"># RTSP</span>
+      - <span class="code-val">"8555:8555/tcp"</span>
+      - <span class="code-val">"8555:8555/udp"</span>  <span class="code-comment"># WebRTC</span>
+    <span class="code-key">volumes</span>:
+      - <span class="code-val">./go2rtc.yaml:/config/go2rtc.yaml</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 配置示例 -->
+    <h4 style="margin-bottom:12px;font-size:0.95rem;color:var(--gray-800);">③ 基础配置文件 (go2rtc.yaml)</h4>
+    <div class="card-grid card-grid-2">
+      <div class="config-block">
+        <div class="config-head">
+          <div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div>
+          最简配置
+        </div>
+        <div class="config-body">
+<pre><code><span class="code-key">streams</span>:
+  <span class="code-comment"># RTSP 摄像头</span>
+  <span class="code-key">hall-cam</span>: <span class="code-val">rtsp://admin:pass@192.168.1.123/stream</span>
+
+  <span class="code-comment"># Tapo 摄像头（双向音频）</span>
+  <span class="code-key">tapo-cam</span>: <span class="code-val">tapo://admin:pass@192.168.1.200</span>
+
+  <span class="code-comment"># 小米摄像头</span>
+  <span class="code-key">mi-cam</span>: <span class="code-val">xiaomi://admin:pass@192.168.1.201?stream=2</span></code></pre>
+        </div>
+      </div>
+      <div class="config-block">
+        <div class="config-head">
+          <div class="dot-red"></div><div class="dot-yellow"></div><div class="dot-green"></div>
+          生产安全配置
+        </div>
+        <div class="config-body">
+<pre><code><span class="code-key">api</span>:
+  <span class="code-comment"># 仅允许本地访问 Web UI</span>
+  <span class="code-key">listen</span>: <span class="code-val">"127.0.0.1:1984"</span>
+  <span class="code-key">local_auth</span>: <span class="code-val">true</span>
+  <span class="code-key">allow_paths</span>: <span class="code-val">[/api, /api/streams, /api/webrtc]</span>
+
+<span class="code-key">rtsp</span>:
+  <span class="code-key">listen</span>: <span class="code-val">"127.0.0.1:8554"</span>
+
+<span class="code-key">app</span>:
+  <span class="code-comment"># 限制可用模块</span>
+  <span class="code-key">modules</span>: <span class="code-val">[api, rtsp, webrtc, ffmpeg]</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8. 应用场景 ── -->
+  <section id="scenarios">
+    <div class="section-header">
+      <div class="section-icon">💡</div>
+      <div>
+        <h2>典型应用场景</h2>
+        <p>结合团队现有项目的落地方向</p>
+      </div>
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="scenario-card">
+        <div class="scenario-head" style="background:var(--primary-light);color:var(--primary);">
+          🎥 云边端视频监控接入层
+        </div>
+        <div class="scenario-body">
+          <ul>
+            <li>作为边缘节点的统一摄像头接入网关</li>
+            <li>将私有协议摄像头（大华/海康/Tapo）统一转 RTSP/WebRTC</li>
+            <li>通过 REST API 动态管理流，上报至云端控制面</li>
+            <li>配合 FFmpeg 源进行硬件加速前处理</li>
+            <li>WebRTC 输出直达浏览器大屏，延迟 &lt;500ms</li>
+          </ul>
+        </div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-head" style="background:var(--success-light);color:var(--success);">
+          🤖 视频行为分析前置接入
+        </div>
+        <div class="scenario-body">
+          <ul>
+            <li>通过 exec 源调用 rpicam/GStreamer 对接推理引擎</li>
+            <li>RTSP 输出对接 Frigate/自研 AI 检测服务</li>
+            <li>多摄像头流并发转发，按需触发转码</li>
+            <li>支持 MJPEG 输出用于帧级 CV 分析</li>
+            <li>V4L2 源直接接本地 USB 摄像头/采集卡</li>
+          </ul>
+        </div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-head" style="background:var(--warn-light);color:var(--warn);">
+          🏠 智能家居/采购展示演示
+        </div>
+        <div class="scenario-body">
+          <ul>
+            <li>零延迟摄像头预览集成到 Web 演示系统</li>
+            <li>双向音频支持远程对讲功能演示</li>
+            <li>HomeKit/Ring 等生态摄像头快速接入</li>
+            <li>通过 HLS 支持 iPhone/iPad 客户端</li>
+            <li>RTMP 输出对接直播/录制系统</li>
+          </ul>
+        </div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-head" style="background:#f3e8ff;color:#7c3aed;">
+          🔬 研发测试实验室基础设施
+        </div>
+        <div class="scenario-body">
+          <ul>
+            <li>AIoT 实验室摄像头统一管理与监控</li>
+            <li>多摄像头流统一接入，Web UI 集中管控</li>
+            <li>ONVIF 发现自动检测局域网摄像头</li>
+            <li>配合 Frigate NVR 实现录像与检测</li>
+            <li>单二进制部署，完美适配边缘网关服务器</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 9. 生态系统 ── -->
+  <section id="ecosystem">
+    <div class="section-header">
+      <div class="section-icon">🌐</div>
+      <div>
+        <h2>生态系统</h2>
+        <p>集成 go2rtc 的主流项目与平台</p>
+      </div>
+    </div>
+    <div class="eco-grid">
+      <div class="eco-item">
+        <div class="eco-icon">🏠</div>
+        <div>
+          <div class="eco-name">Home Assistant</div>
+          <div class="eco-desc">2024.11+ 内置，顶级开源智能家居</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">📹</div>
+        <div>
+          <div class="eco-name">Frigate NVR</div>
+          <div class="eco-desc">0.12+ 内置，AI 实时目标检测 NVR</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">📷</div>
+        <div>
+          <div class="eco-name">OpenIPC</div>
+          <div class="eco-desc">开源 IP 摄像头固件项目</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">💡</div>
+        <div>
+          <div class="eco-name">lightNVR</div>
+          <div class="eco-desc">轻量级网络视频录像机</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">🔔</div>
+        <div>
+          <div class="eco-name">ring-mqtt</div>
+          <div class="eco-desc">Ring 设备 MQTT 桥接方案</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">🖥️</div>
+        <div>
+          <div class="eco-name">NixOS / Alpine</div>
+          <div class="eco-desc">主流 Linux 发行版原生收录</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">🗄️</div>
+        <div>
+          <div class="eco-name">Synology / QNAP</div>
+          <div class="eco-desc">主流 NAS 平台支持</div>
+        </div>
+      </div>
+      <div class="eco-item">
+        <div class="eco-icon">⚙️</div>
+        <div>
+          <div class="eco-name">Proxmox</div>
+          <div class="eco-desc">企业虚拟化平台支持</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 10. 风险分析 ── -->
+  <section id="risk">
+    <div class="section-header">
+      <div class="section-icon">⚠️</div>
+      <div>
+        <h2>风险分析</h2>
+        <p>使用 go2rtc 需关注的潜在问题</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="risk-item">
+        <div class="risk-level risk-high">高</div>
+        <div>
+          <div class="risk-title">默认安全配置薄弱</div>
+          <div class="risk-desc">Web API（1984）、RTSP（8554）默认对局域网全开放，无鉴权；exec/echo 源若暴露可获得服务器完全控制权。<br><strong>对策：</strong>必须配置反向代理（Nginx/Caddy）+ 鉴权、限制监听地址、禁用非必要模块。</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level risk-mid">中</div>
+        <div>
+          <div class="risk-title">WebRTC 外网穿透依赖配置</div>
+          <div class="risk-desc">WebRTC 跨 NAT 需正确配置 ICE/STUN/TURN 服务器，IPv6 虚拟化环境存在 UDP 监听问题（v1.9.14 已修复）。<br><strong>对策：</strong>内网环境无影响；公网场景需部署 TURN 服务器（如 coturn）。</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level risk-mid">中</div>
+        <div>
+          <div class="risk-title">部分摄像头品牌兼容性差</div>
+          <div class="risk-desc">EZVIZ（SDP bug）、Reolink（部分型号 RTSP 极差）、Sonoff（协议实现不佳）等品牌兼容性评级低。<br><strong>对策：</strong>选型时优先考虑大华/海康/TP-Link；问题品牌通过 FFmpeg 源降级处理。</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level risk-low">低</div>
+        <div>
+          <div class="risk-title">双向音频浏览器 HTTPS 依赖</div>
+          <div class="risk-desc">浏览器麦克风权限需要 HTTPS 站点，HTTP 部署下双向音频不可用。<br><strong>对策：</strong>部署时使用 Let's Encrypt 证书或内网自签名 CA。</div>
+        </div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-level risk-low">低</div>
+        <div>
+          <div class="risk-title">FLAC 转码 RTSP 不兼容</div>
+          <div class="risk-desc">PCMA/PCMU/PCM 音频内置转码 FLAC 后不兼容 RTSP 流，Frigate/HA 录制 MP4 时需额外配置 AAC 转码。<br><strong>对策：</strong>在 stream 配置中显式指定 <code>#audio=aac</code>。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 11. 落地建议 ── -->
+  <section id="plan">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <h2>落地建议与实施计划</h2>
+        <p>将 go2rtc 集成到现有项目的推进路径</p>
+      </div>
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="card">
+        <h4 style="margin-bottom:16px;font-size:0.95rem;color:var(--gray-900);">推进时间线</h4>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-phase">第一阶段 · 评估</div>
+            <div class="tl-title">部署验证与场景摸底</div>
+            <div class="tl-desc">在实验室环境部署单节点，接入现有测试摄像头，验证 WebRTC 延迟、协议兼容性，确认与边缘推理系统的集成可行性。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-phase">第二阶段 · 集成</div>
+            <div class="tl-title">嵌入云边端协同架构</div>
+            <div class="tl-desc">作为边缘节点摄像头接入层，对接视频行为分析模块（RTSP 输出→AI 推理），同时提供 WebRTC Web UI 实时预览。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-phase">第三阶段 · 加固</div>
+            <div class="tl-title">安全加固与生产部署</div>
+            <div class="tl-desc">配置 Nginx 反向代理 + JWT 鉴权，限制 API 访问路径，禁用 exec/echo 危险源，开启 HTTPS 支持双向音频。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-phase">第四阶段 · 扩展</div>
+            <div class="tl-title">多摄像头规模化接入</div>
+            <div class="tl-desc">利用 ONVIF 自动发现批量接入实验室摄像头，配合 Frigate NVR 实现录像存储和智能告警，完成完整 AIoT 视频链路。</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h4 style="margin-bottom:12px;font-size:0.95rem;">优先级建议</h4>
+          <table style="width:100%;font-size:0.84rem;border-collapse:collapse;">
+            <tr style="background:var(--gray-100);">
+              <th style="padding:8px;text-align:left;border-radius:6px 0 0 0;">场景</th>
+              <th style="padding:8px;text-align:center;">优先级</th>
+              <th style="padding:8px;text-align:left;border-radius:0 6px 0 0;">理由</th>
+            </tr>
+            <tr><td style="padding:8px;">云边端视频接入层</td><td style="padding:8px;text-align:center;"><span class="badge badge-best">P0</span></td><td style="padding:8px;">核心架构直接受益</td></tr>
+            <tr style="background:var(--gray-50);"><td style="padding:8px;">AI 行为分析前置</td><td style="padding:8px;text-align:center;"><span class="badge badge-best">P0</span></td><td style="padding:8px;">关键流水线环节</td></tr>
+            <tr><td style="padding:8px;">实验室基础设施</td><td style="padding:8px;text-align:center;"><span class="badge badge-ok">P1</span></td><td style="padding:8px;">部署成本极低</td></tr>
+            <tr style="background:var(--gray-50);"><td style="padding:8px;">演示系统集成</td><td style="padding:8px;text-align:center;"><span class="badge badge-ok">P1</span></td><td style="padding:8px;">提升展示效果</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:12px;font-size:0.95rem;">关键决策点</h4>
+          <ul style="list-style:none;font-size:0.84rem;color:var(--gray-700);">
+            <li style="padding:6px 0;border-bottom:1px solid var(--gray-100);">✅ <strong>直接采用</strong>：go2rtc 作为流媒体转发中间件，无需二次开发</li>
+            <li style="padding:6px 0;border-bottom:1px solid var(--gray-100);">✅ <strong>Docker 部署</strong>：边缘节点用 Docker 包含内置 FFmpeg 版本</li>
+            <li style="padding:6px 0;border-bottom:1px solid var(--gray-100);">✅ <strong>与 Frigate 组合</strong>：go2rtc 负责接入转发，Frigate 负责录像检测</li>
+            <li style="padding:6px 0;">⚠️ <strong>必须加固安全</strong>：部署前完成访问控制配置再接外网</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ── Footer ── -->
+<footer>
+  <p>📡 go2rtc 项目汇报文档 · 调研时间：2026年6月5日</p>
+  <p style="margin-top:6px;">
+    GitHub：<a href="https://github.com/AlexxIT/go2rtc" target="_blank">github.com/AlexxIT/go2rtc</a> ·
+    官网：<a href="https://go2rtc.org" target="_blank">go2rtc.org</a> ·
+    最新版本：v1.9.14 (2026-01-19)
+  </p>
+</footer>
+
+</body>
+</html>
