@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frigate × go2rtc 深度架构解析</title>
+<style>
+  :root {
+    --primary: #7c3aed;
+    --primary-light: #ede9fe;
+    --primary-dark: #5b21b6;
+    --blue: #2563eb;
+    --blue-light: #dbeafe;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --orange: #d97706;
+    --orange-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --cyan: #0891b2;
+    --cyan-light: #cffafe;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,.12);
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: #0f0f1a;
+    color: #e2e8f0;
+    line-height: 1.7;
+  }
+
+  /* ══ Hero ══ */
+  .hero {
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 40%, #0a1628 100%);
+    padding: 64px 40px 56px;
+    text-align: center;
+    border-bottom: 1px solid rgba(124,58,237,.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 30% 30%, rgba(124,58,237,.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, rgba(37,99,235,.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(124,58,237,.2);
+    border: 1px solid rgba(124,58,237,.4);
+    border-radius: 100px;
+    padding: 6px 18px;
+    font-size: 13px; font-weight: 500; color: #c4b5fd;
+    margin-bottom: 20px; position: relative; z-index: 1;
+  }
+  .hero h1 {
+    font-size: 2.8rem; font-weight: 900;
+    letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px; position: relative; z-index: 1;
+  }
+  .hero p {
+    font-size: 1.1rem; color: #94a3b8; max-width: 720px; margin: 0 auto 28px;
+    position: relative; z-index: 1;
+  }
+  .hero-tags {
+    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    position: relative; z-index: 1;
+  }
+  .hero-tag {
+    padding: 5px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+  }
+  .ht-purple { background: rgba(124,58,237,.2); border: 1px solid rgba(124,58,237,.4); color: #c4b5fd; }
+  .ht-blue { background: rgba(37,99,235,.2); border: 1px solid rgba(37,99,235,.4); color: #93c5fd; }
+  .ht-green { background: rgba(22,163,74,.2); border: 1px solid rgba(22,163,74,.4); color: #86efac; }
+  .ht-orange { background: rgba(217,119,6,.2); border: 1px solid rgba(217,119,6,.4); color: #fcd34d; }
+
+  /* ══ Layout ══ */
+  .page { max-width: 1140px; margin: 0 auto; padding: 48px 24px 100px; }
+
+  section { margin-bottom: 56px; }
+
+  .sec-header {
+    display: flex; align-items: flex-start; gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(124,58,237,.2);
+  }
+  .sec-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(124,58,237,.35);
+  }
+  .sec-header h2 { font-size: 1.4rem; font-weight: 800; color: #f1f5f9; }
+  .sec-header p { font-size: 0.87rem; color: #64748b; margin-top: 3px; }
+
+  /* ══ Dark Cards ══ */
+  .card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .card-grid { display: grid; gap: 16px; }
+  .cg2 { grid-template-columns: repeat(2, 1fr); }
+  .cg3 { grid-template-columns: repeat(3, 1fr); }
+
+  /* ══ TOC ══ */
+  .toc {
+    background: rgba(124,58,237,.05);
+    border: 1px solid rgba(124,58,237,.2);
+    border-radius: var(--radius);
+    padding: 20px 24px; margin-bottom: 48px;
+  }
+  .toc-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; margin-bottom: 14px; font-weight: 700; }
+  .toc-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; }
+  .toc-list a {
+    display: block; padding: 6px 14px;
+    background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.2);
+    border-radius: 100px; font-size: 0.82rem; color: #c4b5fd;
+    text-decoration: none; transition: all .15s;
+  }
+  .toc-list a:hover { background: rgba(124,58,237,.25); border-color: rgba(124,58,237,.5); }
+
+  /* ══ Flow Diagram ══ */
+  .flow-wrap { padding: 8px 0; overflow-x: auto; }
+  .flow {
+    display: flex; align-items: stretch; gap: 0;
+    min-width: 900px;
+  }
+  .flow-col {
+    display: flex; flex-direction: column;
+    gap: 8px; flex: 1;
+  }
+  .flow-col-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; text-align: center; margin-bottom: 8px;
+    padding: 4px 8px; border-radius: 4px;
+  }
+  .fcl-cam { background: rgba(8,145,178,.15); color: #67e8f9; }
+  .fcl-go2rtc { background: rgba(124,58,237,.15); color: #c4b5fd; }
+  .fcl-ffmpeg { background: rgba(37,99,235,.15); color: #93c5fd; }
+  .fcl-detect { background: rgba(217,119,6,.15); color: #fcd34d; }
+  .fcl-ai { background: rgba(22,163,74,.15); color: #86efac; }
+  .fcl-output { background: rgba(220,38,38,.15); color: #fca5a5; }
+
+  .flow-node {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.81rem;
+    text-align: center;
+    color: #cbd5e1;
+  }
+  .flow-node.highlight {
+    background: rgba(124,58,237,.15);
+    border-color: rgba(124,58,237,.4);
+    color: #c4b5fd;
+    font-weight: 600;
+  }
+  .flow-node.node-go2rtc {
+    background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(91,33,182,.2));
+    border-color: rgba(124,58,237,.5);
+    color: #a78bfa; font-weight: 700;
+  }
+  .flow-node.node-ai {
+    background: rgba(22,163,74,.15);
+    border-color: rgba(22,163,74,.3);
+    color: #86efac; font-weight: 600;
+  }
+  .flow-node .sub { font-size: 0.71rem; color: #64748b; margin-top: 3px; }
+
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 6px; color: #374151; font-size: 16px;
+    flex-shrink: 0; align-self: center; margin-top: 24px;
+  }
+  .flow-arrow-v {
+    height: 20px; display: flex; align-items: center; justify-content: center;
+    color: #374151; font-size: 13px; margin: 0 auto;
+  }
+
+  /* ══ Pipeline Steps ══ */
+  .pipeline { position: relative; }
+  .pipe-step {
+    display: flex; gap: 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    position: relative;
+  }
+  .pipe-step:last-child { border-bottom: none; }
+  .pipe-num {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 800; color: #fff;
+    box-shadow: 0 4px 12px rgba(124,58,237,.4);
+  }
+  .pipe-num.blue-num { background: linear-gradient(135deg, var(--blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,.4); }
+  .pipe-num.green-num { background: linear-gradient(135deg, var(--green), #15803d); box-shadow: 0 4px 12px rgba(22,163,74,.4); }
+  .pipe-num.orange-num { background: linear-gradient(135deg, var(--orange), #b45309); box-shadow: 0 4px 12px rgba(217,119,6,.4); }
+  .pipe-num.cyan-num { background: linear-gradient(135deg, var(--cyan), #0e7490); box-shadow: 0 4px 12px rgba(8,145,178,.4); }
+  .pipe-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+  .pipe-title .badge-small {
+    display: inline-block; padding: 2px 8px; border-radius: 100px;
+    font-size: 0.72rem; font-weight: 600; margin-left: 8px; vertical-align: middle;
+  }
+  .bs-purple { background: rgba(124,58,237,.2); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
+  .bs-blue { background: rgba(37,99,235,.2); color: #93c5fd; border: 1px solid rgba(37,99,235,.3); }
+  .bs-green { background: rgba(22,163,74,.2); color: #86efac; border: 1px solid rgba(22,163,74,.3); }
+  .bs-orange { background: rgba(217,119,6,.2); color: #fcd34d; border: 1px solid rgba(217,119,6,.3); }
+  .pipe-desc { font-size: 0.88rem; color: #94a3b8; line-height: 1.6; }
+  .pipe-desc strong { color: #e2e8f0; }
+
+  /* ══ Code blocks ══ */
+  .code-wrap {
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    overflow: hidden; margin: 12px 0;
+  }
+  .code-head {
+    background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    padding: 8px 16px;
+    font-size: 0.78rem; font-weight: 600; color: #64748b;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .cd-r { background: #ef4444; }
+  .cd-y { background: #f59e0b; }
+  .cd-g { background: #22c55e; }
+  pre {
+    padding: 16px 18px;
+    font-size: 0.81rem; line-height: 1.65;
+    font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+    overflow-x: auto; color: #e2e8f0;
+  }
+  .c-comment { color: #4b5563; }
+  .c-key { color: #a78bfa; }
+  .c-val { color: #6ee7b7; }
+  .c-str { color: #93c5fd; }
+  .c-ann { color: #fcd34d; }
+
+  /* ══ Info Boxes ══ */
+  .infobox {
+    border-radius: 10px; padding: 14px 18px;
+    margin: 14px 0; font-size: 0.87rem;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .ib-purple { background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.25); color: #c4b5fd; }
+  .ib-blue { background: rgba(37,99,235,.1); border: 1px solid rgba(37,99,235,.25); color: #93c5fd; }
+  .ib-green { background: rgba(22,163,74,.1); border: 1px solid rgba(22,163,74,.25); color: #86efac; }
+  .ib-orange { background: rgba(217,119,6,.1); border: 1px solid rgba(217,119,6,.25); color: #fcd34d; }
+  .ib-red { background: rgba(220,38,38,.1); border: 1px solid rgba(220,38,38,.25); color: #fca5a5; }
+  .ib-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .ib-text { line-height: 1.55; }
+  .ib-text strong { font-weight: 700; }
+
+  /* ══ Tables ══ */
+  .dark-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.84rem; border-radius: var(--radius); overflow: hidden;
+  }
+  .dark-table th {
+    background: rgba(124,58,237,.2); color: #c4b5fd;
+    padding: 11px 14px; text-align: left; font-weight: 700;
+    font-size: 0.8rem; border-bottom: 1px solid rgba(124,58,237,.3);
+  }
+  .dark-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    color: #cbd5e1; vertical-align: top;
+  }
+  .dark-table tr:last-child td { border-bottom: none; }
+  .dark-table tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* ══ Badge ══ */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 100px;
+    font-size: 0.74rem; font-weight: 600;
+  }
+  .b-purple { background: rgba(124,58,237,.2); color: #c4b5fd; }
+  .b-blue { background: rgba(37,99,235,.2); color: #93c5fd; }
+  .b-green { background: rgba(22,163,74,.2); color: #86efac; }
+  .b-orange { background: rgba(217,119,6,.2); color: #fcd34d; }
+  .b-red { background: rgba(220,38,38,.2); color: #fca5a5; }
+  .b-cyan { background: rgba(8,145,178,.2); color: #67e8f9; }
+
+  /* ══ MQTT Topics ══ */
+  .mqtt-topic {
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 0.8rem;
+    background: rgba(255,255,255,.05);
+    padding: 2px 8px; border-radius: 4px;
+    color: #6ee7b7;
+  }
+
+  /* ══ Data Flow JSON ══ */
+  .json-block {
+    background: #0d1117;
+    border: 1px solid rgba(22,163,74,.2);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 0.8rem; line-height: 1.7;
+    color: #e2e8f0; overflow-x: auto;
+  }
+  .j-key { color: #93c5fd; }
+  .j-str { color: #6ee7b7; }
+  .j-num { color: #fcd34d; }
+  .j-bool { color: #f9a8d4; }
+  .j-null { color: #94a3b8; }
+  .j-comment { color: #374151; font-style: italic; }
+
+  /* ══ Architecture Summary ══ */
+  .arch-summary {
+    background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(37,99,235,.05));
+    border: 1px solid rgba(124,58,237,.2);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+  }
+  .arch-points { list-style: none; margin-top: 14px; }
+  .arch-points li {
+    display: flex; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    font-size: 0.9rem; color: #94a3b8;
+  }
+  .arch-points li:last-child { border-bottom: none; }
+  .arch-points strong { color: #e2e8f0; }
+  .arch-dot { width: 6px; height: 6px; background: #7c3aed; border-radius: 50%; flex-shrink: 0; margin-top: 8px; }
+
+  /* ══ Roles grid ══ */
+  .role-card {
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    padding: 16px;
+    background: rgba(255,255,255,.03);
+    transition: border-color .15s;
+  }
+  .role-card:hover { border-color: rgba(124,58,237,.3); }
+  .role-icon { font-size: 26px; margin-bottom: 8px; }
+  .role-name { font-weight: 700; font-size: 0.95rem; color: #f1f5f9; margin-bottom: 4px; }
+  .role-desc { font-size: 0.82rem; color: #64748b; line-height: 1.5; }
+  .role-tag { font-family: monospace; font-size: 0.78rem; background: rgba(124,58,237,.1); color: #c4b5fd; padding: 2px 8px; border-radius: 4px; margin-top: 6px; display: inline-block; }
+
+  /* ══ Responsive ══ */
+  @media(max-width: 768px) {
+    .hero h1 { font-size: 2rem; }
+    .cg2, .cg3 { grid-template-columns: 1fr; }
+    .flow { min-width: 700px; }
+  }
+
+  /* ══ Footer ══ */
+  footer {
+    text-align: center;
+    padding: 28px;
+    font-size: 0.82rem; color: #334155;
+    border-top: 1px solid rgba(255,255,255,.06);
+    background: rgba(0,0,0,.3);
+  }
+  footer a { color: #7c3aed; text-decoration: none; }
+
+  h3.sub-title {
+    font-size: 1rem; font-weight: 700; color: #e2e8f0;
+    margin: 24px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  h3.sub-title::before {
+    content: '';
+    width: 4px; height: 16px;
+    background: var(--primary);
+    border-radius: 2px; flex-shrink: 0;
+  }
+
+  p.body-text {
+    font-size: 0.9rem; color: #94a3b8; line-height: 1.75; margin-bottom: 12px;
+  }
+  p.body-text strong { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">🔍 深度架构调研报告</div>
+  <h1>Frigate × go2rtc 完整集成解析</h1>
+  <p>摄像头管理 · 流媒体管道 · AI推理流程 · 数据交换 · 检测后视频输出的完整技术链路</p>
+  <div class="hero-tags">
+    <span class="hero-tag ht-purple">Frigate v0.17.1</span>
+    <span class="hero-tag ht-blue">go2rtc v1.9.10</span>
+    <span class="hero-tag ht-green">WebRTC / RTSP / MSE</span>
+    <span class="hero-tag ht-orange">MQTT 数据交换</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <div class="toc-title">目录导航</div>
+    <ul class="toc-list">
+      <li><a href="#overview">全局架构概览</a></li>
+      <li><a href="#camera-mgmt">摄像头管理</a></li>
+      <li><a href="#go2rtc-role">go2rtc 的角色定位</a></li>
+      <li><a href="#pipeline">视频处理流水线</a></li>
+      <li><a href="#ai-detect">AI 推理详细流程</a></li>
+      <li><a href="#data-exchange">数据交换机制</a></li>
+      <li><a href="#output">AI 推理后的视频输出</a></li>
+      <li><a href="#config-examples">完整配置示例</a></li>
+      <li><a href="#summary">架构要点总结</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── 1. 全局架构概览 ── -->
+  <section id="overview">
+    <div class="sec-header">
+      <div class="sec-icon">🗺️</div>
+      <div>
+        <h2>全局架构概览</h2>
+        <p>Frigate 的三层处理架构与 go2rtc 的核心位置</p>
+      </div>
+    </div>
+
+    <p class="body-text">
+      Frigate 将视频监控系统拆分为三层：<strong>流接入层（go2rtc）</strong>、<strong>分析处理层（FFmpeg + Python AI）</strong>、<strong>输出层（WebRTC/RTSP/MQTT）</strong>。go2rtc 作为统一的视频网关，承担摄像头的多协议接入和流复用，让上游的 FFmpeg 和 AI 推理引擎只需消费标准 RTSP 流，无需关心摄像头原始协议。
+    </p>
+
+    <div class="flow-wrap">
+      <div class="flow">
+        <!-- 摄像头 -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-cam">摄像头</div>
+          <div class="flow-node"><span>IP 摄像头</span><div class="sub">RTSP / RTMP</div></div>
+          <div class="flow-node"><span>HomeKit 摄像头</span><div class="sub">Apple HAP</div></div>
+          <div class="flow-node"><span>Tapo / 小米</span><div class="sub">私有协议</div></div>
+          <div class="flow-node"><span>USB / V4L2</span><div class="sub">本地设备</div></div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- go2rtc -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-go2rtc">go2rtc :8554</div>
+          <div class="flow-node node-go2rtc">
+            协议转换 & 流复用
+            <div class="sub">统一输出 RTSP</div>
+          </div>
+          <div class="flow-node highlight" style="margin-top:4px;">
+            1 摄像头连接
+            <div class="sub">N 路消费者</div>
+          </div>
+          <div class="flow-node" style="margin-top:4px;">
+            WebRTC :8555
+            <div class="sub">直接输出前端</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- FFmpeg -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-ffmpeg">FFmpeg 进程</div>
+          <div class="flow-node" style="border-color:rgba(37,99,235,.3);color:#93c5fd;">
+            主流拉取
+            <div class="sub">原始编码直写</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node" style="border-color:rgba(8,145,178,.3);color:#67e8f9;">
+            子流拉取
+            <div class="sub">解码→共享内存</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node">
+            帧采样
+            <div class="sub">~5 FPS</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- 检测 -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-detect">运动 & 帧</div>
+          <div class="flow-node" style="border-color:rgba(217,119,6,.3);color:#fcd34d;">
+            运动检测
+            <div class="sub">帧差分算法</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node">
+            运动区域提取
+            <div class="sub">Motion Regions</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node" style="border-color:rgba(124,58,237,.3);color:#c4b5fd;">
+            区域图像裁剪
+            <div class="sub">→ 检测队列</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- AI -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-ai">AI 推理引擎</div>
+          <div class="flow-node node-ai">
+            目标检测模型
+            <div class="sub">CPU/Coral/GPU/NPU</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node" style="border-color:rgba(22,163,74,.3);color:#86efac;">
+            识别结果
+            <div class="sub">bbox + label + score</div>
+          </div>
+          <div class="flow-arrow-v">↓</div>
+          <div class="flow-node">
+            增强分析
+            <div class="sub">人脸/车牌/语义</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">→</div>
+
+        <!-- 输出 -->
+        <div class="flow-col">
+          <div class="flow-col-label fcl-output">输出层</div>
+          <div class="flow-node" style="border-color:rgba(220,38,38,.3);color:#fca5a5;">
+            MQTT 事件发布
+            <div class="sub">frigate/events</div>
+          </div>
+          <div class="flow-node" style="border-color:rgba(37,99,235,.3);color:#93c5fd;margin-top:4px;">
+            快照存储
+            <div class="sub">标注 JPEG</div>
+          </div>
+          <div class="flow-node" style="border-color:rgba(8,145,178,.3);color:#67e8f9;margin-top:4px;">
+            录像存储
+            <div class="sub">H.264 原始流</div>
+          </div>
+          <div class="flow-node" style="border-color:rgba(22,163,74,.3);color:#86efac;margin-top:4px;">
+            Web UI 预览
+            <div class="sub">jsmpeg 标注流</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="infobox ib-purple" style="margin-top:16px;">
+      <div class="ib-icon">💡</div>
+      <div class="ib-text"><strong>关键设计：</strong>go2rtc 做的是「1 路摄像头连接 → N 路流复用」，FFmpeg 的 detect/record/audio 角色全部从 go2rtc 的 RTSP 中继 <code>rtsp://127.0.0.1:8554/camera_name</code> 拉流，而非直连摄像头。这大幅减少了摄像头的并发连接压力。</div>
+    </div>
+  </section>
+
+  <!-- ── 2. 摄像头管理 ── -->
+  <section id="camera-mgmt">
+    <div class="sec-header">
+      <div class="sec-icon">📷</div>
+      <div>
+        <h2>摄像头管理</h2>
+        <p>go2rtc 的流注册与 Frigate 摄像头角色分配机制</p>
+      </div>
+    </div>
+
+    <h3 class="sub-title">摄像头角色（Roles）系统</h3>
+    <p class="body-text">每个 Frigate 摄像头的 FFmpeg 输入可以被分配角色，决定该路流的用途。每个角色只能分配给一个输入流。</p>
+
+    <div class="card-grid cg3" style="margin-bottom:20px;">
+      <div class="role-card">
+        <div class="role-icon">🔍</div>
+        <div class="role-name">detect</div>
+        <div class="role-desc">目标检测主流，通常使用低分辨率子流，解码后送入帧采样 → 运动检测 → AI 推理管道</div>
+        <div class="role-tag">rtsp://127.0.0.1:8554/camera_sub</div>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">💾</div>
+        <div class="role-name">record</div>
+        <div class="role-desc">录像流，使用高清主流，视频编码直接写入 MP4 文件，无需重新编码，最小化性能损耗</div>
+        <div class="role-tag">rtsp://127.0.0.1:8554/camera_main</div>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🔊</div>
+        <div class="role-name">audio</div>
+        <div class="role-desc">音频检测流（可选），用于声音事件检测（狗叫声、报警声等），音频流从同一 RTSP 中继拉取</div>
+        <div class="role-tag">rtsp://127.0.0.1:8554/camera_sub</div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">两种典型摄像头接入模式</h3>
+
+    <div class="card-grid cg2">
+      <!-- 单流模式 -->
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:#c4b5fd;margin-bottom:10px;">模式①：单流模式（节省摄像头连接数）</div>
+        <div class="code-wrap">
+          <div class="code-head"><div class="code-dot cd-r"></div><div class="code-dot cd-y"></div><div class="code-dot cd-g"></div>go2rtc.yaml + cameras</div>
+          <pre><code><span class="c-comment"># 1. go2rtc 注册流（只连摄像头一次）</span>
+<span class="c-key">go2rtc</span>:
+  <span class="c-key">streams</span>:
+    <span class="c-key">hall_cam</span>:
+      - <span class="c-str">rtsp://admin:pass@192.168.1.5:554/live0</span>
+      - <span class="c-str">"ffmpeg:hall_cam#audio=opus"</span>  <span class="c-comment"># 转码音频</span>
+
+<span class="c-comment"># 2. Frigate 摄像头从 go2rtc 中继拉流</span>
+<span class="c-key">cameras</span>:
+  <span class="c-key">hall_cam</span>:
+    <span class="c-key">ffmpeg</span>:
+      <span class="c-key">inputs</span>:
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/hall_cam</span>
+          <span class="c-key">input_args</span>: <span class="c-str">preset-rtsp-restream</span>
+          <span class="c-key">roles</span>: [<span class="c-str">detect</span>, <span class="c-str">record</span>, <span class="c-str">audio</span>]</code></pre>
+        </div>
+        <div class="infobox ib-blue" style="margin-top:8px;">
+          <div class="ib-icon">📌</div>
+          <div class="ib-text">摄像头连接数：<strong>1 条</strong>（go2rtc 内部共享）</div>
+        </div>
+      </div>
+
+      <!-- 主子流模式 -->
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:#c4b5fd;margin-bottom:10px;">模式②：主子流模式（画质与性能平衡）</div>
+        <div class="code-wrap">
+          <div class="code-head"><div class="code-dot cd-r"></div><div class="code-dot cd-y"></div><div class="code-dot cd-g"></div>go2rtc.yaml + cameras</div>
+          <pre><code><span class="c-comment"># 主流（高清）+ 子流（低清）分开注册</span>
+<span class="c-key">go2rtc</span>:
+  <span class="c-key">streams</span>:
+    <span class="c-key">hall_cam</span>:          <span class="c-comment"># 主流 2K</span>
+      - <span class="c-str">rtsp://admin:pass@192.168.1.5:554/main</span>
+    <span class="c-key">hall_cam_sub</span>:      <span class="c-comment"># 子流 720p</span>
+      - <span class="c-str">rtsp://admin:pass@192.168.1.5:554/sub</span>
+
+<span class="c-key">cameras</span>:
+  <span class="c-key">hall_cam</span>:
+    <span class="c-key">ffmpeg</span>:
+      <span class="c-key">inputs</span>:
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/hall_cam</span>
+          <span class="c-key">roles</span>: [<span class="c-str">record</span>]     <span class="c-comment"># 主流 → 录像</span>
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/hall_cam_sub</span>
+          <span class="c-key">roles</span>: [<span class="c-str">detect</span>]    <span class="c-comment"># 子流 → 检测</span></code></pre>
+        </div>
+        <div class="infobox ib-green" style="margin-top:8px;">
+          <div class="ib-icon">✅</div>
+          <div class="ib-text"><strong>推荐生产方案：</strong>主流高清录像保留画质证据，低清子流减少 AI 解码计算量，两者互不干扰。</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">go2rtc 与 Frigate 摄像头名称的自动映射</h3>
+    <div class="infobox ib-orange">
+      <div class="ib-icon">⭐</div>
+      <div class="ib-text"><strong>关键约定：</strong>当 go2rtc 中的流名称与 Frigate 摄像头名称<strong>完全一致</strong>时，Frigate 自动启用 MSE/WebRTC 高质量直播预览（优于 jsmpeg 低质量方案）。这是 Frigate 文档中推荐的最佳实践。</div>
+    </div>
+
+    <h3 class="sub-title">PTZ 摄像头支持（ONVIF）</h3>
+    <p class="body-text">Frigate 通过 ONVIF 协议管理 PTZ 摄像头（云台转动、变焦），go2rtc 处理视频流接入，ONVIF 控制是独立的 HTTP 控制通道。支持自动追踪（Autotracking）功能，可跟随运动目标自动转动摄像头。</p>
+  </section>
+
+  <!-- ── 3. go2rtc 的角色定位 ── -->
+  <section id="go2rtc-role">
+    <div class="sec-header">
+      <div class="sec-icon">🔌</div>
+      <div>
+        <h2>go2rtc 在 Frigate 中的角色定位</h2>
+        <p>go2rtc 做什么、不做什么，以及它与其他模块的边界</p>
+      </div>
+    </div>
+
+    <div class="card-grid cg2">
+      <div>
+        <h3 class="sub-title" style="margin-top:0;">go2rtc 负责的事</h3>
+        <table class="dark-table">
+          <thead><tr><th>能力</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>📡 多协议接入</td><td>RTSP、RTMP、WebRTC、HomeKit、Tapo、小米、Ring 等 20+ 协议统一接入</td></tr>
+            <tr><td>🔀 流复用</td><td>1 路摄像头连接分发给多个消费者（detect、record、audio、外部应用）</td></tr>
+            <tr><td>⚡ 低延迟输出</td><td>WebRTC（:8555）、MSE 直接输出给浏览器，绕过 FFmpeg，延迟最低</td></tr>
+            <tr><td>🎙️ 双向音频中继</td><td>通过 backchannel 支持 RTSP 双向音频（对讲），需独立流配置</td></tr>
+            <tr><td>🔄 按需转码</td><td>仅在必要时（如 H265→H264）调用内置 FFmpeg 转码</td></tr>
+            <tr><td>📊 实时统计</td><td>通过 :1984 Web UI 查看所有活跃流连接状态</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 class="sub-title" style="margin-top:0;">go2rtc 不负责的事</h3>
+        <table class="dark-table">
+          <thead><tr><th>不做</th><th>由谁负责</th></tr></thead>
+          <tbody>
+            <tr><td>❌ 帧解码与图像处理</td><td>FFmpeg 进程负责（共享内存输出给 Python）</td></tr>
+            <tr><td>❌ 运动检测</td><td>Python 进程（基于解码后的帧做帧差分）</td></tr>
+            <tr><td>❌ AI 目标检测</td><td>独立检测器进程（TFLite/EdgeTPU/OpenVINO 等）</td></tr>
+            <tr><td>❌ 在视频流上叠加标注</td><td>Frigate Python 后端（图像绘制 bbox）</td></tr>
+            <tr><td>❌ 录像文件写入</td><td>FFmpeg record 进程（直写 MP4，避免重编码）</td></tr>
+            <tr><td>❌ 事件/告警发布</td><td>MQTT 模块（Python 发布到 broker）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="infobox ib-purple" style="margin-top:16px;">
+      <div class="ib-icon">🔑</div>
+      <div class="ib-text"><strong>核心定位：</strong>go2rtc 是 Frigate 的「视频网关」，专注于协议接入和流复用，通过 RTSP 中继（:8554）向内部 FFmpeg 进程提供标准化视频源，同时通过 WebRTC/MSE（:8555/:1984）向外部客户端提供低延迟预览。<strong>AI 推理结果不流经 go2rtc</strong>，两者通过共享 RTSP 服务解耦。</div>
+    </div>
+  </section>
+
+  <!-- ── 4. 视频处理流水线 ── -->
+  <section id="pipeline">
+    <div class="sec-header">
+      <div class="sec-icon">⚙️</div>
+      <div>
+        <h2>视频处理流水线（Video Pipeline）</h2>
+        <p>从摄像头到 AI 推理的完整 5 阶段处理步骤</p>
+      </div>
+    </div>
+
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-num">1</div>
+        <div>
+          <div class="pipe-title">
+            视频采集（Feed Acquisition）
+            <span class="badge-small bs-purple">go2rtc</span>
+            <span class="badge-small bs-blue">FFmpeg</span>
+          </div>
+          <div class="pipe-desc">
+            go2rtc 作为第一道关口，将各种协议的摄像头统一转为标准 RTSP 流。FFmpeg 进程通过 <code>rtsp://127.0.0.1:8554/&lt;camera_name&gt;</code> 从本地 go2rtc 拉流，而非直连摄像头。<strong>每个摄像头只有一条原始连接</strong>，无论内部有多少消费者。
+            <br><br>
+            FFmpeg 根据 <code>input_args: preset-rtsp-restream</code> 预设以低延迟模式（无缓冲）拉取流，确保帧数据的实时性。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num blue-num">2</div>
+        <div>
+          <div class="pipe-title">
+            帧解码（Frame Decoding）
+            <span class="badge-small bs-blue">FFmpeg</span>
+            <span class="badge-small bs-orange">共享内存</span>
+          </div>
+          <div class="pipe-desc">
+            FFmpeg 对 <code>detect</code> 角色的子流进行解码（H.264/H.265 → 原始 YUV/RGB 帧），可配置硬件加速（VAAPI/NVDEC/VideoToolbox）。<br><br>
+            <strong>帧率控制：</strong>通过采样频率限制（如 5 FPS）降低后续处理压力，可在 <code>detect.fps</code> 配置。<br>
+            <strong>分辨率控制：</strong>可配置 <code>detect.width/height</code> 对图像降采样。<br>
+            <strong>输出方式：</strong>解码后的原始帧通过 <strong>共享内存（Shared Memory）</strong> 传递给 Python 检测进程，避免了进程间数据序列化开销。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num orange-num">3</div>
+        <div>
+          <div class="pipe-title">
+            运动检测（Motion Detection）
+            <span class="badge-small bs-orange">Python 进程</span>
+          </div>
+          <div class="pipe-desc">
+            Python 进程从共享内存读取解码帧，使用<strong>帧间差分算法</strong>（时序比较）检测画面变化。<br><br>
+            检测流程：<code>解码帧 → 像素差分 → 运动像素区域 → 合并为运动框（Motion Boxes）→ 聚合为运动区域（Motion Regions）</code><br><br>
+            运动检测是 AI 推理的<strong>前置过滤器</strong>：只有存在运动的区域图像才会被裁剪并放入检测队列。静止画面不触发 AI 推理，大幅节省计算资源。可通过 MQTT 主题 <span class="mqtt-topic">frigate/&lt;cam&gt;/motion</span> 实时获取运动状态。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num green-num">4</div>
+        <div>
+          <div class="pipe-title">
+            AI 目标检测（Object Detection）
+            <span class="badge-small bs-green">独立检测器进程</span>
+          </div>
+          <div class="pipe-desc">
+            运动区域的裁剪图像被放入<strong>检测请求队列</strong>，多个摄像头共享同一检测队列，由独立的检测器进程处理。<br><br>
+            <strong>支持的检测器后端：</strong>CPU TFLite（默认）、Google Coral EdgeTPU、OpenVINO（Intel GPU/CPU/NPU）、ONNX（Nvidia/AMD GPU）、Hailo-8 AI 加速卡。<br><br>
+            检测器输出：<code>边界框（bbox）+ 类别标签（label）+ 置信度分数（score）+ 属性</code><br><br>
+            AI 增强功能（在检测结果基础上）：语义搜索、人脸识别、车牌识别（LPR）、鸟类分类、生成式 AI 描述（调用大模型对场景进行自然语言描述）。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num cyan-num">5</div>
+        <div>
+          <div class="pipe-title">
+            快照与录像保存（Snapshot & Recording）
+            <span class="badge-small bs-blue">FFmpeg record 进程</span>
+          </div>
+          <div class="pipe-desc">
+            <strong>录像</strong>由专门的 FFmpeg record 进程处理：从 go2rtc 中继直接拉取<strong>原始编码的主流</strong>，写入 MP4 容器，<strong>不进行重新编码</strong>，最小化 CPU 开销。录制保留策略（按天/事件/对象类型）可独立配置。<br><br>
+            <strong>快照</strong>由 Python 进程在原始帧上叠加检测标注（边界框、标签、置信度）后存储为 JPEG 文件。通过 HTTP API 端点 <code>/api/&lt;camera_name&gt;/&lt;label&gt;/snapshot.jpg</code> 可获取带标注的最新快照。
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. AI 推理详细流程 ── -->
+  <section id="ai-detect">
+    <div class="sec-header">
+      <div class="sec-icon">🤖</div>
+      <div>
+        <h2>AI 推理详细流程</h2>
+        <p>从帧图像到目标识别结果的完整链路</p>
+      </div>
+    </div>
+
+    <h3 class="sub-title">检测器进程架构</h3>
+    <p class="body-text">
+      Frigate 的 AI 推理运行在<strong>独立的检测器进程</strong>中（与主 Python 进程分离），通过 <strong>Unix Domain Socket</strong> 或 <strong>共享内存</strong> 与主进程通信。多个摄像头的检测请求共享同一检测器队列，检测器串行处理后返回结果，避免了多模型实例的内存开销。
+    </p>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div style="font-size:0.84rem;line-height:2;color:#94a3b8;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+          <span style="color:#67e8f9;font-weight:700;">① 帧图像</span>
+          <span style="color:#374151;">→</span>
+          <span style="color:#c4b5fd;font-weight:700;">② 运动区域裁剪</span>
+          <span style="color:#374151;">→</span>
+          <span style="color:#fcd34d;font-weight:700;">③ 图像预处理</span>
+          <span style="color:#374151;">（resize to 320×320 / 640×640）</span>
+          <span style="color:#374151;">→</span>
+          <span style="color:#86efac;font-weight:700;">④ 模型推理</span>
+          <span style="color:#374151;">→</span>
+          <span style="color:#f9a8d4;font-weight:700;">⑤ NMS 后处理</span>
+          <span style="color:#374151;">→</span>
+          <span style="color:#fca5a5;font-weight:700;">⑥ 结果写回主进程</span>
+        </div>
+        <div style="font-size:0.8rem;color:#475569;margin-top:4px;">NMS = Non-Maximum Suppression 非极大值抑制，去除重叠检测框</div>
+      </div>
+    </div>
+
+    <div class="card-grid cg2">
+      <div>
+        <h3 class="sub-title" style="margin-top:0;">支持的检测器类型</h3>
+        <table class="dark-table">
+          <thead><tr><th>检测器</th><th>硬件</th><th>推荐场景</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge b-purple">cpu</span> TFLite CPU</td><td>通用 CPU</td><td>测试/低负载</td></tr>
+            <tr><td><span class="badge b-blue">edgetpu</span> Coral</td><td>USB/PCIe Coral</td><td>低功耗嵌入式</td></tr>
+            <tr><td><span class="badge b-green">openvino</span></td><td>Intel CPU/GPU/NPU</td><td>Intel 平台首选</td></tr>
+            <tr><td><span class="badge b-orange">onnx</span> ONNX</td><td>Nvidia/AMD GPU</td><td>高性能 GPU 服务器</td></tr>
+            <tr><td><span class="badge b-cyan">hailo8l</span></td><td>Hailo M.2 NPU</td><td>边缘 AI 加速</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 class="sub-title" style="margin-top:0;">AI 增强分析链（Enrichments）</h3>
+        <table class="dark-table">
+          <thead><tr><th>功能</th><th>触发条件</th><th>结果字段</th></tr></thead>
+          <tbody>
+            <tr><td>🙂 人脸识别</td><td>检测到 person</td><td><code>sub_label: ["John", 0.95]</code></td></tr>
+            <tr><td>🚗 车牌识别 LPR</td><td>检测到 car</td><td><code>recognized_license_plate</code></td></tr>
+            <tr><td>🐦 鸟类分类</td><td>检测到 bird</td><td><code>sub_label: "crow"</code></td></tr>
+            <tr><td>🔍 语义搜索嵌入</td><td>每次事件</td><td>向量存储，供自然语言搜索</td></tr>
+            <tr><td>💬 生成式描述</td><td>配置后自动触发</td><td><code>description: "..."</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 class="sub-title">检测器配置示例（OpenVINO GPU）</h3>
+    <div class="code-wrap">
+      <div class="code-head"><div class="code-dot cd-r"></div><div class="code-dot cd-y"></div><div class="code-dot cd-g"></div>frigate config.yml</div>
+      <pre><code><span class="c-key">detectors</span>:
+  <span class="c-key">ov_0</span>:
+    <span class="c-key">type</span>: <span class="c-val">openvino</span>
+    <span class="c-key">device</span>: <span class="c-val">GPU</span>   <span class="c-comment"># 或 CPU / NPU</span>
+  <span class="c-key">ov_1</span>:
+    <span class="c-key">type</span>: <span class="c-val">openvino</span>
+    <span class="c-key">device</span>: <span class="c-val">GPU</span>   <span class="c-comment"># 多检测器并行处理多摄像头</span>
+
+<span class="c-key">model</span>:
+  <span class="c-key">model_type</span>: <span class="c-val">yolo-generic</span>
+  <span class="c-key">width</span>: <span class="c-val">320</span>
+  <span class="c-key">height</span>: <span class="c-val">320</span>
+  <span class="c-key">input_tensor</span>: <span class="c-val">nchw</span>
+  <span class="c-key">input_dtype</span>: <span class="c-val">float</span>
+  <span class="c-key">path</span>: <span class="c-str">/config/model_cache/yolo.onnx</span>
+  <span class="c-key">labelmap_path</span>: <span class="c-str">/labelmap/coco-80.txt</span></code></pre>
+    </div>
+  </section>
+
+  <!-- ── 6. 数据交换机制 ── -->
+  <section id="data-exchange">
+    <div class="sec-header">
+      <div class="sec-icon">🔗</div>
+      <div>
+        <h2>数据交换机制</h2>
+        <p>Frigate 内部各组件间及对外的数据交换方式</p>
+      </div>
+    </div>
+
+    <h3 class="sub-title">内部进程间通信（IPC）</h3>
+    <table class="dark-table" style="margin-bottom:20px;">
+      <thead><tr><th>通信方式</th><th>传输内容</th><th>方向</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge b-orange">共享内存</span> Shared Memory</td>
+          <td>解码后的原始视频帧（YUV/RGB 原始数据，高带宽）</td>
+          <td>FFmpeg 进程 → Python 检测进程</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-purple">Unix Socket</span> / 检测器 API</td>
+          <td>检测请求（图像裁剪）+ 检测结果（bbox/label/score）</td>
+          <td>Python 主进程 ↔ 检测器子进程</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-blue">RTSP :8554</span> go2rtc 中继</td>
+          <td>原始编码视频流（H.264/H.265 packet）</td>
+          <td>go2rtc → FFmpeg detect/record/audio 进程</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-cyan">HTTP REST API :5000</span></td>
+          <td>配置、录像查询、快照、统计信息</td>
+          <td>Web UI / 外部系统 ↔ Frigate 后端</td>
+        </tr>
+        <tr>
+          <td><span class="badge b-green">内部 Event Bus</span></td>
+          <td>检测事件、运动事件、录像触发信号</td>
+          <td>Python 各子模块间</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 class="sub-title">对外数据交换：MQTT</h3>
+    <p class="body-text">Frigate 通过 MQTT 向外部系统（Home Assistant、自定义应用）发布所有检测事件和系统状态。MQTT 是 Frigate 与外部世界通信的<strong>唯一主要通道</strong>。</p>
+
+    <div class="card-grid cg2" style="margin-bottom:16px;">
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:#c4b5fd;margin-bottom:10px;">核心事件主题</div>
+        <table class="dark-table">
+          <thead><tr><th>主题</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mqtt-topic">frigate/events</span></td><td>目标追踪完整事件（new/update/end）</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/reviews</span></td><td>审查项（detection/alert 级别）</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/motion</span></td><td>运动检测状态 ON/OFF</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/person</span></td><td>当前 person 数量计数</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/person/snapshot</span></td><td>JPEG 快照图片二进制</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:#c4b5fd;margin-bottom:10px;">远程控制主题（订阅）</div>
+        <table class="dark-table">
+          <thead><tr><th>主题</th><th>命令</th></tr></thead>
+          <tbody>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/detect/set</span></td><td>ON/OFF 启停目标检测</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/recordings/set</span></td><td>ON/OFF 启停录像</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/&lt;cam&gt;/ptz</span></td><td>PTZ 云台控制命令</td></tr>
+            <tr><td><span class="mqtt-topic">frigate/restart</span></td><td>重启 Frigate 服务</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3 class="sub-title">MQTT 事件数据格式（frigate/events）</h3>
+    <div class="json-block">
+<span class="j-comment">// 当检测到一个 person 对象时，发布到 frigate/events</span>
+{
+  <span class="j-key">"type"</span>: <span class="j-str">"update"</span>,  <span class="j-comment">// new | update | end</span>
+  <span class="j-key">"before"</span>: { <span class="j-comment">// 变化前状态</span>
+    <span class="j-key">"id"</span>: <span class="j-str">"1607123955.475377-mxklsc"</span>,
+    <span class="j-key">"camera"</span>: <span class="j-str">"front_door"</span>,
+    <span class="j-key">"label"</span>: <span class="j-str">"person"</span>,
+    <span class="j-key">"score"</span>: <span class="j-num">0.789</span>,
+    <span class="j-key">"top_score"</span>: <span class="j-num">0.958</span>,       <span class="j-comment">// 历史最高置信度</span>
+    <span class="j-key">"box"</span>: [<span class="j-num">424</span>, <span class="j-num">500</span>, <span class="j-num">536</span>, <span class="j-num">712</span>],  <span class="j-comment">// [x1, y1, x2, y2]</span>
+    <span class="j-key">"current_zones"</span>: [<span class="j-str">"driveway"</span>],
+    <span class="j-key">"active"</span>: <span class="j-bool">true</span>,
+    <span class="j-key">"stationary"</span>: <span class="j-bool">false</span>,
+    <span class="j-key">"start_time"</span>: <span class="j-num">1607123955.475377</span>,
+    <span class="j-key">"end_time"</span>: <span class="j-null">null</span>,              <span class="j-comment">// null = 仍在追踪</span>
+    <span class="j-key">"has_snapshot"</span>: <span class="j-bool">false</span>,
+    <span class="j-key">"current_estimated_speed"</span>: <span class="j-num">0.71</span>,
+    <span class="j-key">"velocity_angle"</span>: <span class="j-num">180</span>
+  },
+  <span class="j-key">"after"</span>: { <span class="j-comment">// 变化后状态（与 before 同结构）</span>
+    <span class="j-key">"sub_label"</span>: [<span class="j-str">"John Smith"</span>, <span class="j-num">0.79</span>],  <span class="j-comment">// 人脸识别后的子标签</span>
+    <span class="j-key">"has_snapshot"</span>: <span class="j-bool">true</span>,           <span class="j-comment">// 快照已生成</span>
+    <span class="j-key">"recognized_license_plate"</span>: <span class="j-str">"ABC12345"</span>  <span class="j-comment">// 车牌识别</span>
+    <span class="j-comment">// ...其余字段同 before</span>
+  }
+}
+    </div>
+  </section>
+
+  <!-- ── 7. AI 推理后的视频输出 ── -->
+  <section id="output">
+    <div class="sec-header">
+      <div class="sec-icon">📺</div>
+      <div>
+        <h2>AI 推理后的视频输出</h2>
+        <p>检测结果如何叠加回视频、以何种方式输出给用户</p>
+      </div>
+    </div>
+
+    <div class="infobox ib-red">
+      <div class="ib-icon">⚠️</div>
+      <div class="ib-text"><strong>重要架构认知：</strong>Frigate 的 go2rtc RTSP 重推流（:8554）<strong>不包含</strong>任何 AI 检测标注信息。go2rtc 输出的是摄像头原始流的透明转发，不会将边界框叠加到视频流中。检测标注只出现在：① Web UI 的实时预览画面、② 存储的快照 JPEG 文件。</div>
+    </div>
+
+    <h3 class="sub-title">三种视频输出路径详解</h3>
+
+    <div class="pipeline" style="margin-top:0;">
+      <div class="pipe-step">
+        <div class="pipe-num" style="font-size:0.8rem;font-weight:700;letter-spacing:0;">UI</div>
+        <div>
+          <div class="pipe-title">
+            Web UI 实时预览（带检测标注）
+            <span class="badge-small bs-orange">jsmpeg</span>
+            <span class="badge-small bs-blue">MSE</span>
+            <span class="badge-small bs-green">WebRTC</span>
+          </div>
+          <div class="pipe-desc">
+            <strong>jsmpeg 低带宽流（默认 fallback）：</strong>Python 后端基于 detect 流解码帧，<strong>将 AI 检测结果（边界框、标签、置信度）直接绘制在原始帧上</strong>，编码为 MPEG1 格式通过 WebSocket 推送到浏览器。分辨率最高 720p，帧率最高 10fps，<strong>无音频</strong>。这是 Frigate Web UI 中显示检测标注的唯一实时方式。<br><br>
+            <strong>MSE / WebRTC 高质量流（go2rtc 直出）：</strong>当 go2rtc 配置了对应流名称时，Frigate UI 优先使用 MSE 或 WebRTC。此时视频由 go2rtc 直接输出原始摄像头流到浏览器，<strong>不含 AI 标注</strong>，但分辨率/帧率/音频质量远优于 jsmpeg。Frigate UI 在此基础上叠加浏览器端 Canvas 绘制的检测框（通过 WebSocket 同步检测结果到前端）。<br><br>
+            <strong>智能切换机制：</strong>无活动时显示静态帧 → 检测到运动后 1~2 秒内自动启动 MSE/WebRTC 高质量流 → 活动结束后销毁播放器，恢复静态帧节省带宽。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num blue-num" style="font-size:0.8rem;font-weight:700;letter-spacing:0;">REC</div>
+        <div>
+          <div class="pipe-title">
+            录像文件（不含标注，原始画质）
+            <span class="badge-small bs-blue">FFmpeg record 进程</span>
+          </div>
+          <div class="pipe-desc">
+            FFmpeg record 进程从 go2rtc 拉取主流（高清原始编码流），<strong>直接写入 MP4 容器，不进行重新编码，不叠加任何标注</strong>。录制的是摄像头原始画质视频，配合 Frigate 事件系统可按事件分段查看。<br><br>
+            录像文件存储在 <code>/media/frigate/recordings/</code>，可通过 Frigate Web UI 的 Timeline 视图浏览事件录像片段。录像保留策略（时长/触发条件）可独立配置。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-num green-num" style="font-size:0.8rem;font-weight:700;letter-spacing:0;">SNAP</div>
+        <div>
+          <div class="pipe-title">
+            快照文件（含 AI 标注）
+            <span class="badge-small bs-green">Python 后端</span>
+          </div>
+          <div class="pipe-desc">
+            Python 检测进程在原始帧上用 OpenCV 绘制边界框、类别标签、置信度数值，生成<strong>带 AI 标注的 JPEG 快照</strong>，每个追踪对象保存一张最高置信度时刻的快照。<br><br>
+            访问方式：<code>GET /api/&lt;camera_name&gt;/&lt;label&gt;/snapshot.jpg</code>（实时最新）<br>
+            历史快照：<code>GET /api/events/&lt;event_id&gt;/snapshot.jpg</code><br>
+            同步通过 MQTT <span class="mqtt-topic">frigate/&lt;cam&gt;/&lt;label&gt;/snapshot</span> 以二进制形式发布。
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-step" style="border-bottom:none;">
+        <div class="pipe-num cyan-num" style="font-size:0.8rem;font-weight:700;letter-spacing:0;">EXT</div>
+        <div>
+          <div class="pipe-title">
+            外部应用消费（通过 RTSP 或 API）
+            <span class="badge-small bs-purple">go2rtc :8554</span>
+            <span class="badge-small bs-cyan">HTTP API :5000</span>
+          </div>
+          <div class="pipe-desc">
+            任何第三方应用（VLC、NVR、其他 AI 系统）可通过 go2rtc 的 RTSP 中继 <code>rtsp://&lt;frigate&gt;:8554/&lt;camera_name&gt;</code> 消费原始视频流。若需要叠加检测结果，外部应用需通过 HTTP API 或 MQTT 订阅检测事件，自行叠加。<br><br>
+            <strong>双向音频（对讲）：</strong>通过 WebRTC（:8555）实现，需配置独立的 go2rtc 流并保留 backchannel：<code>front_door_twoway: rtsp://...（不加 #backchannel=0）</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="sub-title">输出路径对比</h3>
+    <table class="dark-table">
+      <thead>
+        <tr>
+          <th>输出类型</th>
+          <th>含 AI 标注</th>
+          <th>协议/格式</th>
+          <th>延迟</th>
+          <th>音频</th>
+          <th>用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>jsmpeg Web 流</td>
+          <td><span class="badge b-green">✓ 有</span></td>
+          <td>WebSocket / MPEG1</td>
+          <td>中等</td>
+          <td><span class="badge b-red">无</span></td>
+          <td>Web UI 实时监控</td>
+        </tr>
+        <tr>
+          <td>MSE 流（go2rtc）</td>
+          <td><span class="badge b-orange">Canvas 叠加</span></td>
+          <td>HTTP / MP4 frag</td>
+          <td>中等</td>
+          <td><span class="badge b-green">✓ 有</span></td>
+          <td>Web UI 高画质预览</td>
+        </tr>
+        <tr>
+          <td>WebRTC（go2rtc）</td>
+          <td><span class="badge b-orange">Canvas 叠加</span></td>
+          <td>WebRTC / UDP</td>
+          <td><span class="badge b-blue">最低</span></td>
+          <td><span class="badge b-green">✓ 有</span></td>
+          <td>实时监控/对讲</td>
+        </tr>
+        <tr>
+          <td>RTSP 中继（go2rtc）</td>
+          <td><span class="badge b-red">无</span></td>
+          <td>RTSP :8554</td>
+          <td>低</td>
+          <td><span class="badge b-green">✓ 有</span></td>
+          <td>外部 NVR/应用对接</td>
+        </tr>
+        <tr>
+          <td>快照文件</td>
+          <td><span class="badge b-green">✓ 绘制标注</span></td>
+          <td>JPEG</td>
+          <td>N/A</td>
+          <td><span class="badge b-red">无</span></td>
+          <td>事件证据/通知图片</td>
+        </tr>
+        <tr>
+          <td>录像文件</td>
+          <td><span class="badge b-red">无</span></td>
+          <td>MP4</td>
+          <td>N/A</td>
+          <td><span class="badge b-green">✓ 有</span></td>
+          <td>事件回放存档</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 8. 完整配置示例 ── -->
+  <section id="config-examples">
+    <div class="sec-header">
+      <div class="sec-icon">📄</div>
+      <div>
+        <h2>完整配置示例</h2>
+        <p>生产可用的 Frigate + go2rtc 一体化配置</p>
+      </div>
+    </div>
+
+    <div class="code-wrap">
+      <div class="code-head"><div class="code-dot cd-r"></div><div class="code-dot cd-y"></div><div class="code-dot cd-g"></div>config.yml — 生产级多摄像头配置（主子流 + 对讲 + OpenVINO 检测器）</div>
+      <pre><code><span class="c-comment"># ─── MQTT（数据交换出口）</span>
+<span class="c-key">mqtt</span>:
+  <span class="c-key">host</span>: <span class="c-str">192.168.1.10</span>
+  <span class="c-key">port</span>: <span class="c-val">1883</span>
+  <span class="c-key">topic_prefix</span>: <span class="c-str">frigate</span>
+
+<span class="c-comment"># ─── go2rtc（流接入网关）</span>
+<span class="c-key">go2rtc</span>:
+  <span class="c-key">streams</span>:
+    <span class="c-comment"># 前门摄像头（大华）：主流 + 子流分离</span>
+    <span class="c-key">front_door</span>:
+      - <span class="c-str">rtsp://admin:pass@192.168.1.100:554/main</span>         <span class="c-comment"># 主流 4MP</span>
+      - <span class="c-str">"ffmpeg:front_door#audio=opus"</span>                  <span class="c-comment"># 转码音频供 WebRTC</span>
+    <span class="c-key">front_door_sub</span>:
+      - <span class="c-str">rtsp://admin:pass@192.168.1.100:554/sub"</span>          <span class="c-comment"># 子流 720p</span>
+    <span class="c-key">front_door_twoway</span>:
+      - <span class="c-str">rtsp://admin:pass@192.168.1.100:554/main"</span>         <span class="c-comment"># 对讲专用（保留 backchannel）</span>
+
+    <span class="c-comment"># 停车场摄像头（TP-Link Tapo，私有协议）</span>
+    <span class="c-key">parking</span>:
+      - <span class="c-str">tapo://admin:pass@192.168.1.101</span>                   <span class="c-comment"># Tapo 原生协议</span>
+    <span class="c-key">parking_sub</span>:
+      - <span class="c-str">"ffmpeg:tapo://admin:pass@192.168.1.101#video=h264&substream"</span>
+
+  <span class="c-comment"># WebRTC 局域网候选地址</span>
+  <span class="c-key">webrtc</span>:
+    <span class="c-key">candidates</span>:
+      - <span class="c-str">192.168.1.50:8555</span>
+      - <span class="c-str">stun:8555</span>
+
+<span class="c-comment"># ─── AI 检测器（Intel GPU OpenVINO）</span>
+<span class="c-key">detectors</span>:
+  <span class="c-key">ov</span>:
+    <span class="c-key">type</span>: <span class="c-val">openvino</span>
+    <span class="c-key">device</span>: <span class="c-val">GPU</span>
+
+<span class="c-comment"># ─── 检测模型</span>
+<span class="c-key">model</span>:
+  <span class="c-key">model_type</span>: <span class="c-val">yolo-generic</span>
+  <span class="c-key">width</span>: <span class="c-val">320</span>
+  <span class="c-key">height</span>: <span class="c-val">320</span>
+  <span class="c-key">input_tensor</span>: <span class="c-val">nchw</span>
+  <span class="c-key">input_dtype</span>: <span class="c-val">float</span>
+  <span class="c-key">path</span>: <span class="c-str">/config/model_cache/yolo.onnx</span>
+  <span class="c-key">labelmap_path</span>: <span class="c-str">/labelmap/coco-80.txt</span>
+
+<span class="c-comment"># ─── 摄像头配置</span>
+<span class="c-key">cameras</span>:
+  <span class="c-key">front_door</span>:
+    <span class="c-key">ffmpeg</span>:
+      <span class="c-key">output_args</span>:
+        <span class="c-key">record</span>: <span class="c-str">preset-record-generic-audio-copy</span>
+      <span class="c-key">inputs</span>:
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/front_door</span>      <span class="c-comment"># 从 go2rtc 拉主流</span>
+          <span class="c-key">input_args</span>: <span class="c-str">preset-rtsp-restream</span>
+          <span class="c-key">roles</span>: [<span class="c-str">record</span>]
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/front_door_sub</span>  <span class="c-comment"># 从 go2rtc 拉子流</span>
+          <span class="c-key">input_args</span>: <span class="c-str">preset-rtsp-restream</span>
+          <span class="c-key">roles</span>: [<span class="c-str">detect</span>, <span class="c-str">audio</span>]
+    <span class="c-key">detect</span>:
+      <span class="c-key">width</span>: <span class="c-val">1280</span>
+      <span class="c-key">height</span>: <span class="c-val">720</span>
+      <span class="c-key">fps</span>: <span class="c-val">5</span>                             <span class="c-comment"># 5帧/秒送入检测</span>
+    <span class="c-key">objects</span>:
+      <span class="c-key">track</span>: [<span class="c-str">person</span>, <span class="c-str">car</span>, <span class="c-str">dog</span>]
+    <span class="c-key">record</span>:
+      <span class="c-key">enabled</span>: <span class="c-val">True</span>
+      <span class="c-key">retain</span>:
+        <span class="c-key">days</span>: <span class="c-val">7</span>
+        <span class="c-key">mode</span>: <span class="c-str">motion</span>
+    <span class="c-key">snapshots</span>:
+      <span class="c-key">enabled</span>: <span class="c-val">True</span>
+      <span class="c-key">bounding_box</span>: <span class="c-val">True</span>               <span class="c-comment"># 快照中显示边界框</span>
+
+  <span class="c-key">parking</span>:
+    <span class="c-key">ffmpeg</span>:
+      <span class="c-key">inputs</span>:
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/parking</span>
+          <span class="c-key">input_args</span>: <span class="c-str">preset-rtsp-restream</span>
+          <span class="c-key">roles</span>: [<span class="c-str">record</span>]
+        - <span class="c-key">path</span>: <span class="c-str">rtsp://127.0.0.1:8554/parking_sub</span>
+          <span class="c-key">input_args</span>: <span class="c-str">preset-rtsp-restream</span>
+          <span class="c-key">roles</span>: [<span class="c-str">detect</span>]
+    <span class="c-key">detect</span>:
+      <span class="c-key">fps</span>: <span class="c-val">3</span>                              <span class="c-comment"># 停车场场景低帧率即可</span>
+    <span class="c-key">objects</span>:
+      <span class="c-key">track</span>: [<span class="c-str">car</span>, <span class="c-str">person</span>]</code></pre>
+    </div>
+  </section>
+
+  <!-- ── 9. 架构要点总结 ── -->
+  <section id="summary">
+    <div class="sec-header">
+      <div class="sec-icon">🎯</div>
+      <div>
+        <h2>架构要点总结</h2>
+        <p>Frigate × go2rtc 完整集成的核心认知</p>
+      </div>
+    </div>
+
+    <div class="arch-summary">
+      <div style="font-size:1.05rem;font-weight:700;color:#f1f5f9;">七个关键认知</div>
+      <ul class="arch-points">
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>go2rtc 是视频入口，不是 AI 处理节点。</strong>它只做协议转换和流复用，将各品牌摄像头统一输出为标准 RTSP（:8554），不参与任何检测或标注，所有 AI 逻辑由 Python 进程独立处理。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>「1 摄像头连接，N 路消费」是 go2rtc 的核心价值。</strong>detect/record/audio 三个 FFmpeg 进程都从 <code>rtsp://127.0.0.1:8554/camera_name</code> 拉流，摄像头只需维持一条原始连接，大幅减少设备负担。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>运动检测是 AI 推理的前置门控。</strong>Python 进程基于共享内存帧做帧差分，仅当画面有运动时才裁剪图像送入 AI 检测队列，大幅减少 GPU/NPU 计算量。静止场景几乎不消耗推理资源。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>帧传递通过共享内存实现零拷贝。</strong>FFmpeg 解码后的原始帧直接写入共享内存，Python 检测进程直接读取，避免进程间管道传输的高带宽数据复制开销。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>go2rtc 的 RTSP 中继不包含 AI 标注。</strong>外部系统通过 :8554 得到的是摄像头原始流，检测结果只通过 MQTT 发布或在快照/jsmpeg 流中体现。要在流媒体视频上叠加标注，需外部系统自行将 MQTT 检测数据与视频流结合渲染。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>录像不重编码是性能设计的关键决策。</strong>record 进程直接将摄像头原始 H.264/H.265 数据包写入 MP4 容器，完全不经过解码-再编码，保持摄像头原始画质且 CPU 开销接近零。</div>
+        </li>
+        <li>
+          <div class="arch-dot"></div>
+          <div><strong>双向音频需独立流实例避免冲突。</strong>go2rtc 连接 RTSP 流会占用 backchannel，影响对讲功能。需配置 <code>front_door</code>（加 <code>#backchannel=0</code>）和 <code>front_door_twoway</code>（默认不加）两个独立流，分别用于查看/录像和对讲。</div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <p>Frigate × go2rtc 深度架构解析 · 调研时间：2026年6月5日</p>
+  <p style="margin-top:6px;">
+    参考文档：
+    <a href="https://docs.frigate.video" target="_blank">docs.frigate.video</a> ·
+    <a href="https://github.com/blakeblackshear/frigate" target="_blank">Frigate GitHub</a> ·
+    <a href="https://github.com/AlexxIT/go2rtc" target="_blank">go2rtc GitHub</a>
+  </p>
+</footer>
+
+</body>
+</html>
